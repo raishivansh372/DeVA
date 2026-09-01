@@ -1,0 +1,81 @@
+name: Build DeVA APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Create build configuration
+        run: |
+          cat > local.properties <<'EOF'
+          GEMINI_API_KEYS=
+          TAVILY_API=
+          MEM0_API=
+          PICOVOICE_ACCESS_KEY=
+          GOOGLE_TTS_API_KEY=
+          GCLOUD_GATEWAY_PICOVOICE_KEY=
+          GCLOUD_GATEWAY_URL=
+          GCLOUD_PROXY_URL=
+          GCLOUD_PROXY_URL_KEY=
+          REVENUE_CAT_PUBLIC_URL=
+          REVENUECAT_API_KEY=
+          EOF
+
+      - name: Create Firebase configuration
+        run: |
+          mkdir -p app
+
+          cat > app/google-services.json <<'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "deva-build",
+              "storage_bucket": "deva-build.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                  "android_client_info": {
+                    "package_name": "com.deva.voice"
+                  }
+                },
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyDummyBuildKey"
+                  }
+                ]
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+
+      - name: Build debug APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeVA-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
